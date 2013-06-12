@@ -23,7 +23,7 @@ blobsParameters.nBlobs = [128 128];     % number of blobs in both x and y direct
 
 blobsParameters.overlap = 0.5;          % the overlap ratio between blobs
 
-blobsParameters.populationControl = [1e6 1e6]*eps; % defines the minimum value
+blobsParameters.populationControl = [1e1 1e1]*eps; % defines the minimum value
                                                     % of circulation to consider
                                                     % values below this are
                                                     % discarded and the
@@ -31,6 +31,8 @@ blobsParameters.populationControl = [1e6 1e6]*eps; % defines the minimum value
                                                     % circulation change
                                                     % when controlling
                                                     % population
+                                                    
+blobsParameters.k = 2.0; % the k parameter associated to the spread of the blob kernel                                                    
 
 blobsParameters.vInfinity = [0.0; 0.0];             % the velocity at infinity
                                                     
@@ -45,10 +47,19 @@ timeStepParametersBlobs.timeScheme = 'rk4';     % time step scheme:
                                                 %       'rk4'   :: Runge-Kutta 4th order
                                                 %       'euler' :: basic forward Euler (testing purposes only)
 
+timeStepParametersBlobs.timeScheme = 'rk4';     % time step scheme:
+                                                %       'rk4'   :: Runge-Kutta 4th order
+                                                %       'euler' :: basic forward Euler (testing purposes only)
+
+calculationParameters.method = 3; % method used for calculating induced velocities:
+                                  %     0 :: cpu direct calculation
+                                  %     1 :: gpu direct calculation
+                                  %     2 :: cpu fmm calculation
+                                  %     3 :: gpu fmm calculation
                                                 
 %% Definition of GPU related parameters
 
-gpuParameters.blockSize = 256;  % the size of the memory block in the GPU
+gpuParameters.blockSize = 128;  % the size of the memory block in the GPU
 
 %% Definition of the plotting domain
 
@@ -162,10 +173,12 @@ for tStep=1:timeStepParametersBlobs.ntSteps
     % move particles
     blobs(1:2,:) = BlobEvolution(blobs,...
                                  timeStepParametersBlobs.deltaT,...
-                                 blobParameters.sigma,...
+                                 blobParameters.sigma*blobParameters.sigma,...
                                  'blockSize',gpuParameters.blockSize,...
                                  'TimeScheme',timeStepParametersBlobs.timeScheme,...
-                                 'vInf',blobsParameters.vInfinity);
+                                 'vInf',blobsParameters.vInfinity,...
+                                 'method',calculationParameters.method,...
+                                 'k',blobsParameters.k);
     
     % redistribute blobs
     if mod(tStep,timeStepParametersBlobs.stepRedistribute)==0
